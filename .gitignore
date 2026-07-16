@@ -19,3 +19,4 @@ __pycache__/
 Thumbs.db
 
 _paper_text.txt
+*.pt
