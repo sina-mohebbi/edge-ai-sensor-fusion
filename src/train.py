@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 
 from dataset import CavitationWindows
-from model import FusionCNN, SingleModalityCNN
+from model import FusionCNN, SingleModalityCNN, GatedFusionCNN
 
 HERE = Path(__file__).resolve().parent.parent
 RESULTS = HERE / "results"
@@ -36,7 +36,7 @@ def class_weights(ds, device):
 
 def forward(model, mode, accel, mic, device):
     accel, mic = accel.to(device), mic.to(device)
-    if mode == "fusion":
+    if mode in ("fusion", "gated"):
         return model(accel, mic)
     return model(accel if mode == "accel" else mic)
 
@@ -54,7 +54,7 @@ def evaluate(model, mode, loader, device):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["fusion", "accel", "mic"], default="fusion")
+    ap.add_argument("--mode", choices=["fusion", "gated", "accel", "mic"], default="fusion")
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--batch", type=int, default=32)
     args = ap.parse_args()
@@ -71,6 +71,8 @@ def main():
 
     if args.mode == "fusion":
         model = FusionCNN()
+    elif args.mode == "gated":
+        model = GatedFusionCNN()
     else:
         model = SingleModalityCNN(1 if args.mode == "accel" else 2)
     model.to(device)
@@ -121,4 +123,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

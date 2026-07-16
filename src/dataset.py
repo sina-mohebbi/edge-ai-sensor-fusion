@@ -26,12 +26,23 @@ MIC_SCALE = 32768.0                # int16 range -> roughly [-1, 1]
 
 
 class CavitationWindows(Dataset):
-    def __init__(self, split, window_sec=1.0, overlap=0.5):
-        # which recordings are in this split, with their labels
+    def __init__(self, split=None, folders=None, window_sec=1.0, overlap=0.5,
+                 accel_axes=(ACCEL_AXIS,)):
+        # accel_axes selects which accelerometer channels to return:
+        #   (2,)       -> just the vertical axis (raw 1-D models, paper baseline)
+        #   (0, 1, 2)  -> all three axes (the spectral model)
+        self.accel_axes = list(accel_axes)
+
+        # Pick the recordings for this dataset. Either pass a split name
+        # ("train"/"val"/"test", read from split.csv) or an explicit list of
+        # folders (used by cross-validation, which builds its own folds).
         index = pd.read_csv(PROCESSED / "index.csv")
-        assign = pd.read_csv(PROCESSED / "split.csv")
-        recs = index.merge(assign, on="folder")
-        recs = recs[recs["split"] == split].reset_index(drop=True)
+        if folders is not None:
+            recs = index[index["folder"].isin(folders)].reset_index(drop=True)
+        else:
+            assign = pd.read_csv(PROCESSED / "split.csv")
+            recs = index.merge(assign, on="folder")
+            recs = recs[recs["split"] == split].reset_index(drop=True)
 
         self.win_acc = int(window_sec * FS_ACC)
         self.win_mic = int(window_sec * FS_MIC)
@@ -65,16 +76,16 @@ class CavitationWindows(Dataset):
         folder, label, s_acc, s_mic = self.windows[i]
         acc, mic = self._recording(folder)
 
-        a = acc[s_acc:s_acc + self.win_acc, ACCEL_AXIS].astype(np.float32)
+        a = acc[s_acc:s_acc + self.win_acc][:, self.accel_axes].astype(np.float32)
         m = mic[s_mic:s_mic + self.win_mic, :].astype(np.float32)
 
-        # remove DC / gravity (keeps the amplitude differences that matter),
-        # and scale the mic to a sane range
-        a = a - a.mean()
+        # remove DC / gravity per channel (keeps the amplitude differences that
+        # matter), and scale the mic to a sane range
+        a = a - a.mean(axis=0)
         m = (m - m.mean(axis=0)) / MIC_SCALE
 
-        # conv1d wants (channels, length)
-        accel = torch.from_numpy(a).unsqueeze(0)      # (1, 4000)
+        # conv layers want (channels, length)
+        accel = torch.from_numpy(a.T).contiguous()    # (n_axes, 4000)
         micro = torch.from_numpy(m.T).contiguous()    # (2, 48000)
         return accel, micro, label
 
