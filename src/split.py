@@ -1,13 +1,12 @@
 # split.py
-# Builds two things, both at the RECORDING level and both stratified by class:
-#   1) split.csv  — a 70/15/15 train/val/test split, for developing the pipeline
-#   2) folds.csv  — 4 cross-validation folds, for the final, reliable numbers
+# Builds two things, both by whole recording and both balanced across classes:
+#   1) split.csv  - a 70/15/15 train/val/test split
+#   2) folds.csv  - 4 cross-validation folds
 #
-# Recording-level means a whole recording goes into exactly one set. Windows cut
-# from the same 180 s recording are nearly identical, so letting any leak from
-# train into test would fake the score (that's the flaw in the original paper).
-# We split recordings here; the windows get made later, inside whichever set the
-# recording ended up in.
+# By whole recording means a recording goes into exactly one set. Windows cut from
+# the same recording are nearly identical, so letting any leak from train into test
+# would fake the score. We split recordings here; the windows get made later,
+# inside whichever set the recording ended up in.
 #
 # k = 4 folds is the largest that still puts one recording of EVERY class in every
 # fold, because the rarest classes (20% and 15%) have only 4 recordings each. It's

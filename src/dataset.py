@@ -21,7 +21,7 @@ PROCESSED = HERE / "data" / "processed"
 
 FS_ACC, FS_MIC = 4000, 48000
 RATIO = FS_MIC // FS_ACC            # 12
-ACCEL_AXIS = 2                      # 0=x 1=y 2=z — paper uses one "vertical" channel; z carries the clearest trend
+ACCEL_AXIS = 2                      # 0=x 1=y 2=z; z shows the clearest trend for the 1-D models
 MIC_SCALE = 32768.0                # int16 range -> roughly [-1, 1]
 
 
@@ -29,7 +29,7 @@ class CavitationWindows(Dataset):
     def __init__(self, split=None, folders=None, window_sec=1.0, overlap=0.5,
                  accel_axes=(ACCEL_AXIS,)):
         # accel_axes selects which accelerometer channels to return:
-        #   (2,)       -> just the vertical axis (raw 1-D models, paper baseline)
+        #   (2,)       -> just the z axis (the 1-D models)
         #   (0, 1, 2)  -> all three axes (the spectral model)
         self.accel_axes = list(accel_axes)
 

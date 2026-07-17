@@ -1,8 +1,8 @@
 # model.py
-# The intermediate-fusion CNN from the paper: two parallel 1-D conv branches
-# (one for vibration, one for sound), whose features are concatenated and sent
-# to a small classifier. Also here: a single-branch version, so we can reproduce
-# the paper's accel-only and mic-only baselines with the same building blocks.
+# The fusion CNN: two conv branches, one for vibration and one for sound, whose
+# features are joined and sent to a small classifier. There's also a single-branch
+# version for the vibration-only and sound-only baselines, built from the same
+# pieces.
 
 import torch
 import torch.nn as nn

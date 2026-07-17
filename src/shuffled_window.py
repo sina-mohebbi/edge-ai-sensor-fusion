@@ -1,14 +1,11 @@
-# paper_protocol.py
-# Reproduce the paper's evaluation so we can compare on its own terms.
+# shuffled_window.py
+# Pool all windows of one condition and split them 70/15/15 at the window level
+# (shuffled). Windows from the same recording end up in both train and test, so
+# this leaks and the scores come out very high. Keep it only as a reference; the
+# real number is the new-recording test in cross_validate.py.
 #
-# It pools all windows of one condition (clean or noisy) and splits them 70/15/15
-# at the WINDOW level (shuffled frames). This has leakage — windows from the same
-# recording land in both train and test — so the numbers are optimistic. We report
-# it ONLY as a like-for-like comparison with the paper (and to beat it there); the
-# honest number is the leave-one-recording-out result in cross_validate.py.
-#
-#   python src/paper_protocol.py --mode fusion --condition clean   # reproduce ~paper
-#   python src/paper_protocol.py --mode hybrid --condition clean   # try to beat it
+#   python src/shuffled_window.py --mode fusion --condition clean
+#   python src/shuffled_window.py --mode hybrid --condition clean
 
 import argparse
 from pathlib import Path
@@ -61,7 +58,7 @@ def main():
 
     # shuffle all windows together and split 70/15/15  <-- this is the leaky part
     rng = np.random.default_rng(SEED)
-    perm = rng.permutation(n)
+    perm = rng.permutation(n)      # shuffle all windows together, then split
     n_test, n_val = int(0.15 * n), int(0.15 * n)
     test_idx = perm[:n_test]
     val_idx = perm[n_test:n_test + n_val]
@@ -73,7 +70,7 @@ def main():
     test_dl = DataLoader(Subset(full, test_idx), batch_size=args.batch, num_workers=0)
 
     print(f"device: {device} | mode: {args.mode} | condition: {args.condition} "
-          f"| WINDOW-level split (paper-style, leaky) | {n} windows\n")
+          f"| shuffled window split (leaky) | {n} windows\n")
 
     model = make_model(args.mode).to(device)
 
@@ -102,7 +99,7 @@ def main():
 
     model.load_state_dict(best_state)
     yt, pt = predict(model, args.mode, test_dl, device)
-    print(f"\n===== {args.mode} / {args.condition}: WINDOW-level (paper-style) =====")
+    print(f"\n===== {args.mode} / {args.condition}: shuffled window test =====")
     print(f"accuracy : {accuracy_score(yt, pt):.3f}")
     print(f"macro-F1 : {f1_score(yt, pt, average='macro'):.3f}")
     print("confusion matrix (rows = true, cols = pred):")

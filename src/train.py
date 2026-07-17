@@ -1,12 +1,12 @@
 # train.py
-# Trains a model and reports honest test metrics.
+# Trains a model on one train/val/test split and reports test metrics.
 #
-#   python src/train.py --mode fusion   # the paper's fusion model
-#   python src/train.py --mode accel    # accel-only baseline
-#   python src/train.py --mode mic      # mic-only baseline
+#   python src/train.py --mode fusion   # sound + vibration
+#   python src/train.py --mode accel    # vibration only
+#   python src/train.py --mode mic      # sound only
 #
-# Recipe follows the paper (Adam, lr 1e-3, batch 32) but adds class weighting,
-# best-model-on-val-macro-F1, and an LR-on-plateau scheduler.
+# Adam, lr 1e-3, batch 32, with class weighting, best model kept on val macro F1,
+# and a scheduler that drops the learning rate on a plateau.
 
 import argparse
 from pathlib import Path
