@@ -27,11 +27,15 @@ MIC_SCALE = 32768.0                # int16 range -> roughly [-1, 1]
 
 class CavitationWindows(Dataset):
     def __init__(self, split=None, folders=None, window_sec=1.0, overlap=0.5,
-                 accel_axes=(ACCEL_AXIS,)):
+                 accel_axes=(ACCEL_AXIS,), augment=False):
         # accel_axes selects which accelerometer channels to return:
         #   (2,)       -> just the z axis (the 1-D models)
         #   (0, 1, 2)  -> all three axes (the spectral model)
         self.accel_axes = list(accel_axes)
+
+        # augment adds small random changes to each window (training only)
+        self.augment = augment
+        self._rng = np.random.default_rng()
 
         # Pick the recordings for this dataset. Either pass a split name
         # ("train"/"val"/"test", read from split.csv) or an explicit list of
@@ -84,10 +88,26 @@ class CavitationWindows(Dataset):
         a = a - a.mean(axis=0)
         m = (m - m.mean(axis=0)) / MIC_SCALE
 
+        # during training, nudge the window a little so the model sees more variety
+        if self.augment:
+            time_slide = self._rng.uniform(-0.1, 0.1)     # same slide for both signals
+            volume = 1.0 + self._rng.uniform(-0.08, 0.08)
+            a = self._vary(a, time_slide, volume)
+            m = self._vary(m, time_slide, volume)
+
         # conv layers want (channels, length)
         accel = torch.from_numpy(a.T).contiguous()    # (n_axes, 4000)
         micro = torch.from_numpy(m.T).contiguous()    # (2, 48000)
         return accel, micro, label
+
+    def _vary(self, signal, time_slide, volume):
+        # slide the window in time, change the volume a touch, and add faint noise
+        n = len(signal)
+        signal = np.roll(signal, int(time_slide * n), axis=0)
+        signal = signal * volume
+        noise = self._rng.standard_normal(signal.shape).astype(np.float32)
+        signal = signal + noise * (0.02 * signal.std())
+        return signal.astype(np.float32)
 
 
 # quick self-test: python src/dataset.py

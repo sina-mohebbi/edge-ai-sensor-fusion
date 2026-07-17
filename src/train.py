@@ -62,7 +62,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"device: {device} | mode: {args.mode}")
 
-    train_ds = CavitationWindows("train", overlap=0.5)
+    train_ds = CavitationWindows("train", overlap=0.5, augment=True)
     val_ds = CavitationWindows("val", overlap=0.0)
     test_ds = CavitationWindows("test", overlap=0.0)
     train_dl = DataLoader(train_ds, batch_size=args.batch, shuffle=True, num_workers=0)

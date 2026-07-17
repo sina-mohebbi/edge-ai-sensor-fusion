@@ -83,7 +83,7 @@ def predict(model, mode, loader, device):
 
 def train_fold(mode, train_folders, epochs, batch, device):
     train_ds = CavitationWindows(folders=train_folders, overlap=0.5,
-                                 accel_axes=accel_axes_for(mode))
+                                 accel_axes=accel_axes_for(mode), augment=True)
     train_dl = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=0)
 
     model = make_model(mode).to(device)
