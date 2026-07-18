@@ -28,16 +28,23 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 
 from dataset import CavitationWindows
 from model import (FusionCNN, GatedFusionCNN, SingleModalityCNN,
-                   SpectralFusionCNN, HybridFeatureCNN)
+                   SpectralFusionCNN, HybridFeatureCNN, EarlyFusionCNN)
 
 HERE = Path(__file__).resolve().parent.parent
 PROCESSED = HERE / "data" / "processed"
 CLASS_NAMES = ["nominal", "75", "50", "25", "20", "15"]
 SEED = 42
 
+# Cavitation only starts at 25%, so the six valve settings collapse into a few
+# physical states. We score these groupings on top of the 6-class result.
+CAV_MAP = [0, 0, 0, 1, 1, 1]                       # no cavitation vs cavitation
+CAV_NAMES = ["no cavitation", "cavitation"]
+LEVEL_MAP = [0, 0, 0, 1, 2, 2]                     # none / onset / developing
+LEVEL_NAMES = ["none", "onset", "developing"]
+
 # modes that take both modalities and use all 3 accel axes
-BOTH_MODALITY = ("fusion", "gated", "spectral", "hybrid")
-ALL_AXES = ("spectral", "hybrid")
+BOTH_MODALITY = ("fusion", "gated", "spectral", "hybrid", "earlyfusion")
+ALL_AXES = ("spectral", "hybrid", "earlyfusion")
 
 
 def accel_axes_for(mode):
@@ -53,6 +60,8 @@ def make_model(mode):
         return SpectralFusionCNN()
     if mode == "hybrid":
         return HybridFeatureCNN()
+    if mode == "earlyfusion":
+        return EarlyFusionCNN()
     return SingleModalityCNN(1 if mode == "accel" else 2)
 
 
@@ -101,10 +110,24 @@ def train_fold(mode, train_folders, epochs, batch, device):
     return model
 
 
+def report_grouping(name, group_map, group_names, yt, pt, rec_true, rec_pred):
+    # re-score the same predictions after merging the 6 classes into groups
+    m = np.array(group_map)
+    gy, gp = m[yt], m[pt]                      # window level
+    ry, rp = m[rec_true], m[rec_pred]          # recording level
+    print(f"\n--- grouped as {name} ({' / '.join(group_names)}) ---")
+    print(f"window accuracy    : {accuracy_score(gy, gp):.3f}")
+    print(f"window macro-F1    : {f1_score(gy, gp, average='macro'):.3f}")
+    print(f"recording accuracy : {(ry == rp).sum()}/{len(ry)} = {(ry == rp).mean():.3f}")
+    print("confusion (rows = true, cols = pred):", group_names)
+    print(confusion_matrix(gy, gp, labels=range(len(group_names))))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode",
-                    choices=["fusion", "gated", "spectral", "hybrid", "accel", "mic"],
+                    choices=["fusion", "gated", "spectral", "hybrid",
+                             "earlyfusion", "accel", "mic"],
                     default="hybrid")
     ap.add_argument("--condition", choices=["clean", "noisy", "all"], default="clean")
     ap.add_argument("--epochs", type=int, default=20)
@@ -167,6 +190,9 @@ def main():
     print(confusion_matrix(yt, pt, labels=range(6)))
     print("\nrecording-level confusion matrix (majority vote):")
     print(confusion_matrix(rec_true, rec_pred, labels=range(6)))
+
+    report_grouping("cavitation vs not", CAV_MAP, CAV_NAMES, yt, pt, rec_true, rec_pred)
+    report_grouping("severity level", LEVEL_MAP, LEVEL_NAMES, yt, pt, rec_true, rec_pred)
 
 
 if __name__ == "__main__":

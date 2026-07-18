@@ -6,6 +6,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class ConvBranch(nn.Module):
@@ -248,6 +249,45 @@ class HybridFeatureCNN(nn.Module):
         return self.classifier(torch.cat(parts, dim=1))
 
 
+class EarlyFusionCNN(nn.Module):
+    """Early fusion: turn sound and vibration into spectrograms, resize both to the
+    same grid, stack them as channels of one image, and run a single 2-D CNN that
+    mixes the two from its first layer. No separate branches; the two modalities
+    are combined at the input instead of near the end."""
+
+    def __init__(self, n_classes=6, accel_channels=3, mic_channels=2, size=64):
+        super().__init__()
+        self.size = size
+        in_ch = accel_channels + mic_channels          # 5 stacked channels
+        layers = [nn.BatchNorm2d(in_ch)]
+        c = in_ch
+        for w in (16, 32, 64, 128):
+            layers += [nn.Conv2d(c, w, 3, padding=1), nn.BatchNorm2d(w),
+                       nn.ReLU(), nn.MaxPool2d(2)]
+            c = w
+        self.features = nn.Sequential(*layers)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.classifier = nn.Sequential(
+            nn.Linear(c, 128), nn.ReLU(), nn.Dropout(0.3), nn.Linear(128, n_classes))
+
+    def _spec(self, x, n_fft, hop):
+        b, ch, length = x.shape
+        flat = x.reshape(b * ch, length)
+        window = torch.hann_window(n_fft, device=x.device)
+        mag = torch.stft(flat, n_fft=n_fft, hop_length=hop,
+                        window=window, return_complex=True).abs()
+        spec = torch.log1p(mag).reshape(b, ch, mag.shape[-2], mag.shape[-1])
+        return F.interpolate(spec, size=(self.size, self.size),
+                             mode="bilinear", align_corners=False)
+
+    def forward(self, accel, mic):
+        a = self._spec(accel, n_fft=256, hop=128)
+        m = self._spec(mic, n_fft=1024, hop=512)
+        x = torch.cat([a, m], dim=1)                    # one 5-channel image
+        x = self.features(x)
+        return self.classifier(self.pool(x).flatten(1))
+
+
 # quick shape/param check: python src/model.py
 if __name__ == "__main__":
     raw12 = (torch.randn(4, 1, 4000), torch.randn(4, 2, 48000))
@@ -257,6 +297,7 @@ if __name__ == "__main__":
         ("gated", GatedFusionCNN(), raw12),
         ("spectral", SpectralFusionCNN(), raw32),
         ("hybrid", HybridFeatureCNN(), raw32),
+        ("earlyfusion", EarlyFusionCNN(), raw32),
     ]:
         out = model(*args)
         n_params = sum(p.numel() for p in model.parameters())
