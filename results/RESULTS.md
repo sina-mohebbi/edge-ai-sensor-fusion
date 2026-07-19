@@ -60,6 +60,38 @@ often *worse* than sound alone, because the weaker vibration branch pulled the r
 Early fusion, which mixes the two at the input, avoided that and is the smallest model of
 the group.
 
+## Pooling clean and noisy
+
+Clean and noisy are kept separate for the main result. Running the same model on all 43
+recordings together (4 folds, whole recordings held out) gives:
+
+| | Separate | Pooled |
+|---|:---:|:---:|
+| 6 apertures | 0.74 (32/43) | **0.84 (36/43)** |
+| 3 levels | 0.95 (41/43) | **1.00 (43/43)** |
+| Cavitation vs. none | 1.00 | 1.00 |
+
+The gain comes from the classes with few recordings: 20% and 15% go from 3/8 to 5/8,
+because pooling gives each of them 4 recordings instead of 2. Note the pooled run trains on
+about 32 recordings per fold while the separate runs train on 22 and 19, so part of the
+gain is simply more training data.
+
+## Predicting the aperture as a number
+
+Instead of picking one of 6 classes, the model predicts the aperture directly (nominal
+counts as 100% open). Pooled recordings, 4 folds:
+
+| | As 6 classes | As a number |
+|---|:---:|:---:|
+| 6 apertures | **0.84 (36/43)** | 0.79 (34/43) |
+| Cavitation vs. none | 1.00 | 1.00 (no window wrong) |
+| Average error | — | **3.8 aperture points** |
+
+33 of 43 recordings land within 5 points of the true opening. This view fixes the 20%
+setting (4/4 against 3/4) but loses ground at nominal and 75%, where fully open recordings
+are predicted around 82 to 88 instead of 100 and snap down to 75. Predictions are pulled
+towards the middle of the range, which costs accuracy at the ends.
+
 ## Where the errors are
 
 Every mistake is between neighbouring, physically similar settings:

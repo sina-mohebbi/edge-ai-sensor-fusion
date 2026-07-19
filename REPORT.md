@@ -89,6 +89,29 @@ The two are not exactly comparable: the pooled run used 4 folds (training on abo
 recordings) while the separate runs held out one recording at a time (training on 22 and
 19), so part of the gain is simply more training data.
 
+## Supplementary: predicting the aperture as a number
+
+Following your suggestion I also tried predicting the aperture as a continuous value
+rather than choosing one of 6 classes. Being a few points off then counts as a small
+error instead of a wrong class, which suits the settings that sit close together.
+
+Run on the pooled recordings with 4 folds:
+
+| | As 6 classes | As a number |
+|---|:---:|:---:|
+| 6 apertures | **0.84 (36/43)** | 0.79 (34/43) |
+| Cavitation vs. no cavitation | 1.00 | 1.00 (no window wrong) |
+| Average error | — | **3.8 aperture points** |
+
+The model predicts the valve opening to within 3.8 points on average, and 33 of the 43
+recordings fall within 5 points.
+
+It fixed the 20% setting completely (4/4 against 3/4), but lost ground at nominal and 75%:
+for fully open recordings it predicts around 82 to 88 instead of 100, so those snap down to
+75. Predictions are pulled towards the middle of the range, which costs accuracy at the
+ends. The two views are therefore complementary, and the average error is the more
+informative number of the two.
+
 ## Limitations
 
 - 20% and 15% have only 2 recordings each per condition, so holding one out leaves a
