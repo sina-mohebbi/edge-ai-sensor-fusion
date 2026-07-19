@@ -70,6 +70,25 @@ Every misclassification is between neighbouring, physically similar settings:
 
 No recording with cavitation was ever classified as no cavitation, in either condition.
 
+## Supplementary: pooling clean and noisy
+
+I kept clean and noisy separate as you advised. To see what that costs, I also ran the
+same model on all 43 recordings together, still holding out whole recordings so there is
+no leakage:
+
+| | Separate | Pooled |
+|---|:---:|:---:|
+| 6 apertures | 0.74 (32/43) | **0.84 (36/43)** |
+| 3 levels | 0.95 (41/43) | **1.00 (43/43)** |
+| Cavitation vs. no cavitation | 1.00 | 1.00 |
+
+The gain comes mainly from the classes with few recordings: 20% and 15% improve from 3/8
+to 5/8 correct, because pooling gives each of them 4 recordings instead of 2.
+
+The two are not exactly comparable: the pooled run used 4 folds (training on about 32
+recordings) while the separate runs held out one recording at a time (training on 22 and
+19), so part of the gain is simply more training data.
+
 ## Limitations
 
 - 20% and 15% have only 2 recordings each per condition, so holding one out leaves a
@@ -88,7 +107,4 @@ No recording with cavitation was ever classified as no cavitation, in either con
 - Two-stage classification (first the level, then the aperture within it) and
   self-supervised pretraining.
 
-## Question
 
-Would you prefer the main reported result to use the new-recording protocol, or the
-shuffled-window one so it is directly comparable with the existing results?

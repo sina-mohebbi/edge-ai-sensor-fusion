@@ -25,6 +25,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 
 from dataset import CavitationWindows
@@ -138,6 +139,9 @@ def main():
     ap.add_argument("--condition", choices=["clean", "noisy", "all"], default="clean")
     ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--batch", type=int, default=32)
+    ap.add_argument("--folds", type=int, default=0,
+                    help="0 = leave one recording out; N > 0 = N folds over recordings "
+                         "(far fewer trainings, so much faster)")
     args = ap.parse_args()
 
     # seed everything so the whole run is reproducible
@@ -156,37 +160,51 @@ def main():
     recs = index.reset_index(drop=True)
     n = len(recs)
     axes = accel_axes_for(args.mode)
+    # Build the folds. Either one recording per fold (leave one out) or N folds of
+    # several recordings. Either way whole recordings stay together, so no leakage.
+    if args.folds > 0:
+        skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=SEED)
+        fold_list = [(list(recs.loc[tr, "folder"]), list(recs.loc[te, "folder"]))
+                     for tr, te in skf.split(recs, recs["label_idx"])]
+        how = f"{args.folds} folds over recordings"
+    else:
+        fold_list = [([recs.loc[j, "folder"] for j in range(n) if j != i],
+                      [recs.loc[i, "folder"]]) for i in range(n)]
+        how = "leave one recording out"
+
     print(f"device: {device} | mode: {args.mode} | condition: {args.condition} "
-          f"| leave-one-recording-out ({n} recordings)\n")
+          f"| {how} ({n} recordings, {len(fold_list)} trainings)\n")
 
     per_rec_acc, all_true, all_pred = [], [], []
     rec_true, rec_pred, rec_pred_maj = [], [], []
-    for i in range(n):
-        test_folder = recs.loc[i, "folder"]
-        train_folders = [recs.loc[j, "folder"] for j in range(n) if j != i]
-
+    done = 0
+    for train_folders, test_folders in fold_list:
         model = train_fold(args.mode, train_folders, args.epochs, args.batch, device)
 
-        test_ds = CavitationWindows(folders=[test_folder], overlap=0.0, accel_axes=axes)
-        test_dl = DataLoader(test_ds, batch_size=args.batch, num_workers=0)
-        yt, pt, probs = predict(model, args.mode, test_dl, device)
+        # every held-out recording is still scored on its own
+        for test_folder in test_folders:
+            test_ds = CavitationWindows(folders=[test_folder], overlap=0.0, accel_axes=axes)
+            test_dl = DataLoader(test_ds, batch_size=args.batch, num_workers=0)
+            yt, pt, probs = predict(model, args.mode, test_dl, device)
 
-        acc = accuracy_score(yt, pt)
-        true_label = int(yt[0])
-        soft_label = int(probs.mean(axis=0).argmax())        # average confidence
-        maj_label = int(np.bincount(pt, minlength=6).argmax())  # majority vote
-        pred_label = soft_label                              # soft vote drives the report
-        per_rec_acc.append(acc)
-        all_true.append(yt)
-        all_pred.append(pt)
-        rec_true.append(true_label)
-        rec_pred.append(soft_label)
-        rec_pred_maj.append(maj_label)
-        mark = "ok  " if pred_label == true_label else "MISS"
-        print(f"[{i+1:2d}/{n}] {test_folder}  true={CLASS_NAMES[true_label]:>7} "
-              f"pred={CLASS_NAMES[pred_label]:>7}  {mark} | window acc {acc:.3f}")
+            acc = accuracy_score(yt, pt)
+            true_label = int(yt[0])
+            soft_label = int(probs.mean(axis=0).argmax())        # average confidence
+            maj_label = int(np.bincount(pt, minlength=6).argmax())  # majority vote
+            pred_label = soft_label                              # soft vote drives the report
+            per_rec_acc.append(acc)
+            all_true.append(yt)
+            all_pred.append(pt)
+            rec_true.append(true_label)
+            rec_pred.append(soft_label)
+            rec_pred_maj.append(maj_label)
+            done += 1
+            mark = "ok  " if pred_label == true_label else "MISS"
+            print(f"[{done:2d}/{n}] {test_folder}  true={CLASS_NAMES[true_label]:>7} "
+                  f"pred={CLASS_NAMES[pred_label]:>7}  {mark} | window acc {acc:.3f}")
+            del test_ds, test_dl
 
-        del model, test_ds, test_dl
+        del model
         gc.collect()
         if device == "cuda":
             torch.cuda.empty_cache()
@@ -195,7 +213,7 @@ def main():
     yt, pt = np.concatenate(all_true), np.concatenate(all_pred)
     rec_true, rec_pred = np.array(rec_true), np.array(rec_pred)
 
-    print(f"\n===== {args.mode} / {args.condition}: leave-one-recording-out =====")
+    print(f"\n===== {args.mode} / {args.condition}: {how} =====")
     print(f"recordings                    : {n}")
     print(f"per-recording window accuracy : {per_rec_acc.mean():.3f} +/- {per_rec_acc.std():.3f}")
     print(f"pooled window accuracy        : {accuracy_score(yt, pt):.3f}")
