@@ -1,83 +1,81 @@
 # Results
 
-Every model I trained this session, in order, with the scores I got.
+All numbers below use the same task: predict the valve aperture from a 1-second window of
+sound and vibration. Clean and noisy are kept as two separate datasets.
 
-Two things to know first:
+## The two ways of measuring
 
-- The data has two kinds of recordings: **quiet** (only our pump running) and **noisy**
-  (a second pump running nearby). Later on I keep these two apart, as the professor asked.
-- How you measure matters a lot. I used a few different ways to score the models, so scores
-  from different ways are **not** directly comparable. Higher isn't always better — sometimes
-  it just means the test was easier (or leaked).
+**Shuffled windows.** All windows are pooled, shuffled, and split 70/15/15. Windows from
+the same recording end up in both training and test, so the scores come out near perfect.
+Kept only as a reference point.
 
-## The four ways I measured
+**New recordings.** One whole recording is held out, the model trains on all the others,
+and this repeats until every recording has been the test recording once. Training and test
+never share a recording, so this measures real generalisation.
 
-1. **One split** — split the recordings once into train and test. Quick, but a bit lucky.
-2. **Four rounds** — every recording gets tested once, averaged over four rounds. Steadier.
-3. **New recording test** — test on a recording the model never saw, and repeat for every
-   recording. The most honest way. I run it for quiet and noisy separately.
-4. **Shuffled pieces test** — cut every recording into 1 second pieces, shuffle them all
-   together, then split. It cheats a little (pieces of the same recording land in both train
-   and test), so scores look great but aren't real.
+## Final model: early fusion
 
----
+Sound and vibration are turned into spectrograms, resized to a common grid, stacked as
+channels of one image, and read by a single small CNN (~115k parameters). Both signals are
+combined at the input rather than in separate branches.
 
-## Phase 1 — first models, one split (quiet + noisy mixed)
+Training: AdamW, lr 1e-3, weight decay 1e-4, cosine schedule, batch 32, 20 epochs, class
+weighting, fixed seed (results are reproducible).
 
-The fusion model reached about **0.90** while tuning, then dropped to about **0.66** on the real
-test — the first hint that the easy scores were misleading.
+### New recordings (the honest result)
 
-| Model | Accuracy | Macro F1 |
-|-------|:---:|:---:|
-| Sound only | 0.812 | 0.759 |
-| Fusion (sound + vibration) | 0.703 | 0.626 |
-| Gated fusion | 0.695 | 0.621 |
-| Vibration only | 0.626 | 0.519 |
+| Condition | 6 apertures | 3 levels | Cavitation vs. none |
+|-----------|:---:|:---:|:---:|
+| Clean | 0.70 (16/23) | 0.96 (22/23) | **1.00 (23/23)** |
+| Noisy | 0.80 (16/20) | 0.95 (19/20) | **1.00 (20/20)** |
 
-Surprise: **sound alone beat the fusion.** The weak vibration branch was dragging fusion down.
+*3 levels = none (nominal, 75%, 50%) / onset (25%) / developing (20%, 15%).*
 
-## Phase 2 — four rounds (quiet + noisy mixed)
+### Shuffled windows (the leaky reference, clean)
 
-| Model | Accuracy | Macro F1 |
-|-------|:---:|:---:|
-| Fusion | 0.578 (± 0.098) | 0.530 (± 0.084) |
-| Spectral (frequency features) | 0.608 (± 0.081) | 0.550 (± 0.138) |
+| Model | Accuracy |
+|-------|:---:|
+| Reference fusion | 0.997 |
+| Sound only | 0.999 |
+| Hybrid | 1.000 |
+| Early fusion | 1.000 |
 
-Adding frequency features helped the real cavitation classes.
+Every model reaches about 100% here. The same early-fusion model scores 1.00 with shuffled
+windows and 0.70 with held-out recordings, which shows the split matters more than the
+model.
 
-## Phase 3 — new recording test, quiet and noisy apart (the honest one)
+## Other models tried
 
-| Setting | Model | Accuracy | Macro F1 | Recordings right |
-|---------|-------|:---:|:---:|:---:|
-| Quiet | Sound only | 0.593 | 0.525 | 15 of 23 |
-| Quiet | Hybrid (all features) | **0.705** | **0.627** | **17 of 23** |
-| Noisy | Hybrid | *to be re-run* | | |
-| Noisy | Sound only | *to be re-run* | | |
+Explored with the same held-out-recording method, before the seed was fixed, so these are
+indicative rather than exactly reproducible:
 
-The **hybrid** model, using all the extra features, beats sound alone by about **10 points**.
-This is the honest result to report.
+| Model | Clean, 6 apertures |
+|-------|:---:|
+| Sound only | 0.65 |
+| Hybrid (raw + spectrogram + simple descriptors) | 0.74 |
+| Early fusion | 0.70 (seeded, final) |
 
-## Phase 4 — shuffled pieces test (the leaky way), quiet
+Sound alone was consistently stronger than vibration alone. Simple fusion of the two was
+often *worse* than sound alone, because the weaker vibration branch pulled the result down.
+Early fusion, which mixes the two at the input, avoided that and is the smallest model of
+the group.
 
-| Model | Accuracy | Macro F1 |
-|-------|:---:|:---:|
-| Fusion | 0.997 | 0.997 |
-| Sound only | 0.999 | 0.999 |
-| Hybrid | 1.000 | 1.000 |
+## Where the errors are
 
-Every model scores nearly **100%** here. This shows the high scores come from the leaky way of
-measuring, not from a better model.
+Every mistake is between neighbouring, physically similar settings:
 
----
+- **nominal vs. 75%** — neither has cavitation, they differ only in flow rate.
+- **20% vs. 15%** — both in the developing region.
 
-## What it all means
+No recording with cavitation was ever labelled as no cavitation, in either condition.
 
-- Measured honestly (new recordings), the model reaches about **0.70** on quiet data. Real and
-  trustworthy, even if it looks lower.
-- Measured the leaky way (shuffled pieces), every model hits about **100%**, which shows those
-  high numbers are inflated by leakage.
-- The extra features (sound + vibration together, all three vibration directions, frequency
-  content, and a few simple numbers like loudness and spikiness) genuinely help on the honest test.
-- The model is good at spotting **cavitation** (25% valve and below). It struggles with **nominal
-  vs 75%** (both have no cavitation, so they look alike) and with **20%** (only 2 recordings, too
-  few to learn from).
+## Limits
+
+- 20% and 15% have only **2 recordings each** per condition, so holding one out leaves a
+  single training example. Their individual scores are unreliable, though they are reliable
+  when reported together as one level.
+- nominal and 75% look almost identical in the signals, consistent with cavitation not
+  being present at those settings.
+- Augmentation, larger spectrograms (128 instead of 64), soft voting, and different
+  training settings were all tested. None changed the 6-aperture result, which points to
+  the amount of data being the limit rather than the model.

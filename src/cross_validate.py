@@ -17,6 +17,7 @@
 
 import argparse
 import gc
+import random
 from pathlib import Path
 
 import numpy as np
@@ -82,12 +83,13 @@ def class_weights(ds, device):
 @torch.no_grad()
 def predict(model, mode, loader, device):
     model.eval()
-    trues, preds = [], []
+    trues, preds, probs = [], [], []
     for accel, mic, y in loader:
         out = forward(model, mode, accel, mic, device)
         preds.append(out.argmax(1).cpu().numpy())
+        probs.append(torch.softmax(out, dim=1).cpu().numpy())
         trues.append(y.numpy())
-    return np.concatenate(trues), np.concatenate(preds)
+    return np.concatenate(trues), np.concatenate(preds), np.concatenate(probs)
 
 
 def train_fold(mode, train_folders, epochs, batch, device):
@@ -97,7 +99,10 @@ def train_fold(mode, train_folders, epochs, batch, device):
 
     model = make_model(mode).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights(train_ds, device))
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    # AdamW adds weight decay (regularisation), cosine schedule eases the learning
+    # rate down over the run. Both help a model that otherwise memorises the data.
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
     for _ in range(epochs):
         model.train()
@@ -107,6 +112,7 @@ def train_fold(mode, train_folders, epochs, batch, device):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        scheduler.step()
     return model
 
 
@@ -134,6 +140,14 @@ def main():
     ap.add_argument("--batch", type=int, default=32)
     args = ap.parse_args()
 
+    # seed everything so the whole run is reproducible
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    np.random.seed(SEED)
+    random.seed(SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     index = pd.read_csv(PROCESSED / "index.csv")
@@ -145,7 +159,8 @@ def main():
     print(f"device: {device} | mode: {args.mode} | condition: {args.condition} "
           f"| leave-one-recording-out ({n} recordings)\n")
 
-    per_rec_acc, all_true, all_pred, rec_true, rec_pred = [], [], [], [], []
+    per_rec_acc, all_true, all_pred = [], [], []
+    rec_true, rec_pred, rec_pred_maj = [], [], []
     for i in range(n):
         test_folder = recs.loc[i, "folder"]
         train_folders = [recs.loc[j, "folder"] for j in range(n) if j != i]
@@ -154,16 +169,19 @@ def main():
 
         test_ds = CavitationWindows(folders=[test_folder], overlap=0.0, accel_axes=axes)
         test_dl = DataLoader(test_ds, batch_size=args.batch, num_workers=0)
-        yt, pt = predict(model, args.mode, test_dl, device)
+        yt, pt, probs = predict(model, args.mode, test_dl, device)
 
         acc = accuracy_score(yt, pt)
         true_label = int(yt[0])
-        pred_label = int(np.bincount(pt, minlength=6).argmax())     # majority vote
+        soft_label = int(probs.mean(axis=0).argmax())        # average confidence
+        maj_label = int(np.bincount(pt, minlength=6).argmax())  # majority vote
+        pred_label = soft_label                              # soft vote drives the report
         per_rec_acc.append(acc)
         all_true.append(yt)
         all_pred.append(pt)
         rec_true.append(true_label)
-        rec_pred.append(pred_label)
+        rec_pred.append(soft_label)
+        rec_pred_maj.append(maj_label)
         mark = "ok  " if pred_label == true_label else "MISS"
         print(f"[{i+1:2d}/{n}] {test_folder}  true={CLASS_NAMES[true_label]:>7} "
               f"pred={CLASS_NAMES[pred_label]:>7}  {mark} | window acc {acc:.3f}")
@@ -182,8 +200,11 @@ def main():
     print(f"per-recording window accuracy : {per_rec_acc.mean():.3f} +/- {per_rec_acc.std():.3f}")
     print(f"pooled window accuracy        : {accuracy_score(yt, pt):.3f}")
     print(f"pooled window macro-F1        : {f1_score(yt, pt, average='macro'):.3f}")
-    print(f"recording-level accuracy      : {(rec_true == rec_pred).sum()}/{n} "
-          f"= {(rec_true == rec_pred).mean():.3f}  (majority vote per recording)")
+    rec_pred_maj = np.array(rec_pred_maj)
+    print(f"recording accuracy (soft vote): {(rec_true == rec_pred).sum()}/{n} "
+          f"= {(rec_true == rec_pred).mean():.3f}")
+    print(f"recording accuracy (majority) : {(rec_true == rec_pred_maj).sum()}/{n} "
+          f"= {(rec_true == rec_pred_maj).mean():.3f}")
 
     print("\npooled window confusion matrix (rows = true, cols = pred):")
     print("order:", CLASS_NAMES)

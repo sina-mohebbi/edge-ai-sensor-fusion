@@ -38,7 +38,8 @@ def predict(model, mode, loader, device):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode",
-                    choices=["fusion", "gated", "spectral", "hybrid", "accel", "mic"],
+                    choices=["fusion", "gated", "spectral", "hybrid",
+                             "earlyfusion", "accel", "mic"],
                     default="hybrid")
     ap.add_argument("--condition", choices=["clean", "noisy", "all"], default="clean")
     ap.add_argument("--epochs", type=int, default=30)
