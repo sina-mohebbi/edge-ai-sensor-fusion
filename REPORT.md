@@ -144,14 +144,20 @@ Cavitation is separated from no cavitation without a single mistake in either co
 
 Pooled recordings, 4 folds, identical training settings:
 
-| Model | Input | 6 apertures | 3 levels | Cavitation |
-|-------|-------|:---:|:---:|:---:|
-| **Early fusion** | spectrograms | **0.84 (36/43)** | **1.00** | 1.00 |
-| Aperture as a number | spectrograms | 0.79 (34/43) | 0.98 | 1.00 |
-| Fusion (intermediate) | raw time domain | 0.74 (32/43) | 0.98 | 1.00 |
+| Model | Sensors | Input | 6 apertures | 3 levels | Cavitation |
+|-------|---------|-------|:---:|:---:|:---:|
+| **Early fusion** | both | spectrograms | **0.84 (36/43)** | **1.00** | 1.00 |
+| Aperture as a number | both | spectrograms | 0.79 (34/43) | 0.98 | 1.00 |
+| Sound only | one | raw time domain | 0.77 (33/43) | 0.98 | 1.00 |
+| Fusion (intermediate) | both | raw time domain | 0.74 (32/43) | 0.98 | 1.00 |
 
-Earlier runs, before the seed was fixed and under other protocols, are consistent with this
-ordering: sound only 0.65, hybrid 0.74, spectral 0.61, gated fusion 0.70.
+Using both sensors only helps if they are combined at the input. The intermediate fusion of
+the two raw signals (0.74) is in fact **worse than the microphone alone** (0.77), because the
+weaker vibration branch pulls the result down. Early fusion, where the two become one image
+before any processing, is the only version that beats the single sensor (0.84).
+
+Cavitation itself is detected perfectly by every model in the table, including the single
+microphone.
 
 ### 6.3 Is the time-frequency transform worth it?
 
@@ -166,6 +172,11 @@ The transform is worth about 9 points on the exact six settings, but **nothing a
 detecting cavitation**, where both reach 100%. So if the goal on the device is to answer
 "is the pump cavitating", the cheap time-domain model is enough and no transform is needed.
 The transform only pays off if the exact aperture is required.
+
+The same holds for the number of sensors: a **single microphone** processed in the time
+domain also detects cavitation without a single mistake. For that task the cheapest possible
+setup is sufficient, and the extra sensor and the transform only earn their cost when the
+exact setting is needed.
 
 ### 6.4 Shuffled windows, for comparison
 
@@ -263,6 +274,9 @@ model. The mistakes are therefore always "one step off", never a missed detectio
    in both clean and noisy conditions.
 2. **Early fusion is the best of the models tried** for the exact aperture: 0.84 pooled,
    with less than half the parameters of the hybrid.
+3. **Using both sensors helps only if they are fused at the input.** Combining the two raw
+   signals in separate branches (0.74) is worse than the microphone alone (0.77); stacking
+   them into one image first gives 0.84.
 3. **The evaluation protocol dominates the result.** The same model scores 1.00 with
    shuffled windows and 0.70–0.84 with held-out recordings.
 4. **The remaining errors are physical or data-related**, not modelling failures: adjacent
