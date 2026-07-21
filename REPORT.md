@@ -55,6 +55,9 @@ uses 50% overlap; testing uses none. Per window and per channel the mean is remo
 takes out gravity on the accelerometer) while the amplitude is kept, because vibration
 level itself carries information. Microphone samples are scaled to roughly ±1.
 
+During training each window is also varied slightly (small time shift, small volume change,
+a little noise) so the model does not simply memorise the windows it has seen.
+
 **Step 3 — Model (`model.py`).** Described in section 5.
 
 **Step 4 — Evaluation (`cross_validate.py`, `shuffled_window.py`).** Described in
@@ -227,16 +230,15 @@ for the separate ones.
 
 | Idea | Result |
 |------|--------|
-| Augmentation (time shift, volume, noise) | No improvement. It varies the recordings already available and cannot add new operating points. |
 | Larger spectrograms (128×128) | 0.70 against 0.70 for 64×64. No gain, twice the compute. |
 | Soft voting instead of majority | Identical result on every run. |
 | AdamW and cosine schedule | No change to the 6-aperture result, kept as reasonable regularisation. |
 | Gated fusion | No better than plain fusion. The gate cannot learn to distrust a sensor, because on the training data both look reliable. |
 | Hand-crafted descriptors (hybrid) | 0.74, below early fusion. |
 
-Together these show the limit is the amount of data, not the training recipe: five different
-changes to the model or optimisation left the result unchanged, while adding recordings
-(pooling) moved it by 10 points.
+Together these show the limit is the amount of data, not the training recipe: several
+different changes to the model or optimisation left the result unchanged, while adding
+recordings (pooling) moved it by 10 points.
 
 ---
 
