@@ -15,8 +15,9 @@ never seen, in both quiet and noisy conditions. On the exact 6 apertures it reac
 
 The evaluation method matters more than the model: with shuffled windows every model
 scores about 100%, because windows from the same recording land in both training and
-test. Full numbers are in [RESULTS.md](results/RESULTS.md), and a write-up is in
-[REPORT.md](REPORT.md).
+test. The full write-up, with the pipeline, every model and all the results, is in
+[REPORT.md](REPORT.md) (also available as `REPORT.docx`). The raw run logs are in
+`results/`.
 
 ## The data
 
@@ -51,7 +52,7 @@ Available models: `earlyfusion`, `hybrid`, `spectral`, `fusion`, `gated`, `mic`,
 | `src/shuffled_window.py` | The leaky reference: pool all windows, shuffle, split. Kept for comparison. |
 | `src/train.py` | Trains on a single split. Used early on. |
 | `src/split.py` | Builds a train/val/test split and cross-validation folds by recording. |
-| `results/` | Result logs and the results summary. |
+| `results/` | Raw output of every run, and the model diagram. |
 
 ## Setup
 
