@@ -1,11 +1,11 @@
 # Cavitation detection from sound and vibration
 
-Predicting the state of a centrifugal pump from its sound and vibration, using a small
-neural network that reads both signals together.
+Detecting cavitation in a centrifugal pump by fusing its sound and vibration in one
+small neural network.
 
-A microphone and an accelerometer record the pump while an inlet valve is closed step by
-step. The model takes a 1-second window of both signals and predicts the valve aperture:
-`nominal, 75%, 50%, 25%, 20%, 15%`. Cavitation begins around the 25% setting.
+A microphone and an accelerometer record the pump while an inlet valve is closed step
+by step. The model reads a 1-second window of both signals and predicts the valve
+aperture (`nominal, 75%, 50%, 25%, 20%, 15%`); cavitation begins around 25%.
 
 ## Main result
 
