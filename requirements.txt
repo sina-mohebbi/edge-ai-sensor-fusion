@@ -1,0 +1,8 @@
+# Core dependencies for training and evaluation.
+# For GPU training, install torch from the CUDA index first, e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+torch
+numpy
+pandas
+scikit-learn
+tqdm
