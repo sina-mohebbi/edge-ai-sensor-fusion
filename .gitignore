@@ -21,3 +21,5 @@ Thumbs.db
 _paper_text.txt
 *.pt
 *.zip
+# Office lock/temp files
+~$*
