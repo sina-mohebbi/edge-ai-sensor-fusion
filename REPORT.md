@@ -1,6 +1,6 @@
 # Cavitation monitoring of a centrifugal pump from sound and vibration
 
-Full report of the work: pipeline, models, experiments and results.
+Sina Mohebbi
 
 ---
 
