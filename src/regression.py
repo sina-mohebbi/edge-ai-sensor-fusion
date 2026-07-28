@@ -131,6 +131,7 @@ def main():
 
     errors, all_true, all_pred = [], [], []
     rec_true, rec_pred = [], []
+    true_open_all, pred_open_all = [], []
     done = 0
     for train_folders, test_folders in fold_list:
         model = train_fold(args.mode, train_folders, args.epochs, args.batch, device)
@@ -146,6 +147,8 @@ def main():
             snapped = int(np.abs(guessed_open - APERTURE).argmin())
 
             errors.append(abs(guessed_open - true_open))
+            true_open_all.append(float(true_open))
+            pred_open_all.append(guessed_open)
             all_true.append(labels)
             all_pred.append(nearest_class(values))
             rec_true.append(true_label)
@@ -166,10 +169,19 @@ def main():
     yt, pt = np.concatenate(all_true), np.concatenate(all_pred)
     rec_true, rec_pred = np.array(rec_true), np.array(rec_pred)
 
+    true_open_all = np.array(true_open_all)
+    pred_open_all = np.array(pred_open_all)
+    mae = errors.mean()
+    rmse = np.sqrt((errors ** 2).mean())
+    ss_res = ((true_open_all - pred_open_all) ** 2).sum()
+    ss_tot = ((true_open_all - true_open_all.mean()) ** 2).sum()
+    r2 = 1 - ss_res / ss_tot
+
     print(f"\n===== {args.mode} / {args.condition}: aperture as a number, {how} =====")
     print(f"recordings                    : {n}")
-    print(f"average error                 : {errors.mean():.1f} aperture points "
-          f"(+/- {errors.std():.1f})")
+    print(f"mean absolute error (MAE)     : {mae:.2f} aperture points")
+    print(f"root mean squared error (RMSE): {rmse:.2f} aperture points")
+    print(f"R^2                           : {r2:.3f}")
     print(f"largest error                 : {errors.max():.1f} points")
     print(f"within 5 points of the truth  : {(errors <= 5).sum()}/{n}")
     print(f"accuracy after snapping       : {(rec_true == rec_pred).sum()}/{n} "

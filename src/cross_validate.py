@@ -223,6 +223,7 @@ def main():
           f"= {(rec_true == rec_pred).mean():.3f}")
     print(f"recording accuracy (majority) : {(rec_true == rec_pred_maj).sum()}/{n} "
           f"= {(rec_true == rec_pred_maj).mean():.3f}")
+    print(f"recording macro-F1 (soft vote): {f1_score(rec_true, rec_pred, average='macro'):.3f}")
 
     print("\npooled window confusion matrix (rows = true, cols = pred):")
     print("order:", CLASS_NAMES)

@@ -1,0 +1,88 @@
+device: cuda | mode: accel | condition: all | 4 folds over recordings (43 recordings, 4 trainings)
+
+[ 1/43] 20260401_095748  true=nominal pred=nominal  ok   | window acc 1.000
+[ 2/43] 20260401_101351  true=nominal pred=nominal  ok   | window acc 0.945
+[ 3/43] 20260401_102314  true=     50 pred=     50  ok   | window acc 1.000
+[ 4/43] 20260401_104906  true=     75 pred=     75  ok   | window acc 0.506
+[ 5/43] 20260401_105928  true=nominal pred=nominal  ok   | window acc 0.872
+[ 6/43] 20260401_110640  true=     75 pred=     75  ok   | window acc 0.976
+[ 7/43] 20260401_112436  true=     15 pred=     15  ok   | window acc 1.000
+[ 8/43] 20260401_113313  true=     50 pred=     50  ok   | window acc 1.000
+[ 9/43] 20260401_120858  true=     25 pred=     25  ok   | window acc 0.970
+[10/43] 20260401_131712  true=     20 pred=     15  MISS | window acc 0.122
+[11/43] 20260401_132502  true=     25 pred=     25  ok   | window acc 0.994
+[12/43] 20260401_103228  true=     20 pred=     20  ok   | window acc 0.677
+[13/43] 20260401_103637  true=     15 pred=     15  ok   | window acc 0.896
+[14/43] 20260401_104052  true=     25 pred=     25  ok   | window acc 1.000
+[15/43] 20260401_111134  true=     50 pred=     50  ok   | window acc 1.000
+[16/43] 20260401_113822  true=     75 pred=     75  ok   | window acc 1.000
+[17/43] 20260401_114239  true=nominal pred=nominal  ok   | window acc 0.494
+[18/43] 20260401_114757  true=nominal pred=nominal  ok   | window acc 0.580
+[19/43] 20260401_120420  true=     50 pred=     50  ok   | window acc 1.000
+[20/43] 20260401_123716  true=     50 pred=     75  MISS | window acc 0.000
+[21/43] 20260401_130741  true=     25 pred=     25  ok   | window acc 0.945
+[22/43] 20260401_133300  true=     75 pred=nominal  MISS | window acc 0.061
+[23/43] 20260401_095805  true=nominal pred=nominal  ok   | window acc 1.000
+[24/43] 20260401_101658  true=     75 pred=     75  ok   | window acc 1.000
+[25/43] 20260401_102722  true=     25 pred=     25  ok   | window acc 1.000
+[26/43] 20260401_104455  true=     50 pred=     50  ok   | window acc 0.988
+[27/43] 20260401_112055  true=     20 pred=     20  ok   | window acc 0.982
+[28/43] 20260401_112918  true=     25 pred=     25  ok   | window acc 1.000
+[29/43] 20260401_120017  true=     75 pred=     75  ok   | window acc 0.963
+[30/43] 20260401_122817  true=     25 pred=     25  ok   | window acc 0.945
+[31/43] 20260401_123250  true=     50 pred=     50  ok   | window acc 1.000
+[32/43] 20260401_124955  true=nominal pred=nominal  ok   | window acc 0.635
+[33/43] 20260401_132047  true=     15 pred=     20  MISS | window acc 0.067
+[34/43] 20260401_095222  true=nominal pred=nominal  ok   | window acc 1.000
+[35/43] 20260401_105311  true=nominal pred=nominal  ok   | window acc 0.951
+[36/43] 20260401_111729  true=     25 pred=     25  ok   | window acc 0.988
+[37/43] 20260401_121431  true=     20 pred=     20  ok   | window acc 0.982
+[38/43] 20260401_121907  true=     15 pred=     25  MISS | window acc 0.000
+[39/43] 20260401_124123  true=     75 pred=nominal  MISS | window acc 0.012
+[40/43] 20260401_125749  true=     75 pred=     75  ok   | window acc 0.824
+[41/43] 20260401_130356  true=     50 pred=     50  ok   | window acc 1.000
+[42/43] 20260401_131150  true=     25 pred=     25  ok   | window acc 0.957
+[43/43] 20260401_132901  true=     50 pred=     50  ok   | window acc 1.000
+
+===== accel / all: 4 folds over recordings =====
+recordings                    : 43
+per-recording window accuracy : 0.798 +/- 0.332
+pooled window accuracy        : 0.789
+pooled window macro-F1        : 0.756
+recording accuracy (soft vote): 37/43 = 0.860
+recording accuracy (majority) : 36/43 = 0.837
+recording macro-F1 (soft vote): 0.818
+
+pooled window confusion matrix (rows = true, cols = pred):
+order: ['nominal', '75', '50', '25', '20', '15']
+[[1268  346    0    0    0    0]
+ [ 394  966   61    0    0    0]
+ [   0  166 1310    0    0    0]
+ [   0    0    0 1443   19   14]
+ [   0    0    0   71  453  132]
+ [   0    0    0  111  223  322]]
+
+recording-level confusion matrix (majority vote):
+[[9 0 0 0 0 0]
+ [2 6 0 0 0 0]
+ [0 1 8 0 0 0]
+ [0 0 0 9 0 0]
+ [0 0 0 0 3 1]
+ [0 0 0 1 1 2]]
+
+--- grouped as cavitation vs not (no cavitation / cavitation) ---
+window accuracy    : 1.000
+window macro-F1    : 1.000
+recording accuracy : 43/43 = 1.000
+confusion (rows = true, cols = pred): ['no cavitation', 'cavitation']
+[[4511    0]
+ [   0 2788]]
+
+--- grouped as severity level (none / onset / developing) ---
+window accuracy    : 0.971
+window macro-F1    : 0.948
+recording accuracy : 42/43 = 0.977
+confusion (rows = true, cols = pred): ['none', 'onset', 'developing']
+[[4511    0    0]
+ [   0 1443   33]
+ [   0  182 1130]]

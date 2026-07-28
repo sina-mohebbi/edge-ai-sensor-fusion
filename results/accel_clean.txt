@@ -1,0 +1,70 @@
+C:\Users\sinas\Documents\Cavitation Anomaly Detection\.venv\Lib\site-packages\sklearn\model_selection\_split.py:812: UserWarning: The least populated class in y has only 2 members, which is less than n_splits=4.
+  warnings.warn(
+device: cuda | mode: accel | condition: clean | 4 folds over recordings (23 recordings, 4 trainings)
+
+[ 1/23] 20260401_095222  true=nominal pred=nominal  ok   | window acc 1.000
+[ 2/23] 20260401_095748  true=nominal pred=nominal  ok   | window acc 1.000
+[ 3/23] 20260401_103228  true=     20 pred=     15  MISS | window acc 0.012
+[ 4/23] 20260401_104455  true=     50 pred=     50  ok   | window acc 1.000
+[ 5/23] 20260401_130741  true=     25 pred=     25  ok   | window acc 0.884
+[ 6/23] 20260401_133300  true=     75 pred=nominal  MISS | window acc 0.000
+[ 7/23] 20260401_101351  true=nominal pred=nominal  ok   | window acc 0.978
+[ 8/23] 20260401_101658  true=     75 pred=     75  ok   | window acc 1.000
+[ 9/23] 20260401_103637  true=     15 pred=     15  ok   | window acc 0.866
+[10/23] 20260401_104052  true=     25 pred=     25  ok   | window acc 1.000
+[11/23] 20260401_124955  true=nominal pred=     75  MISS | window acc 0.044
+[12/23] 20260401_132901  true=     50 pred=     50  ok   | window acc 1.000
+[13/23] 20260401_102722  true=     25 pred=     25  ok   | window acc 1.000
+[14/23] 20260401_104906  true=     75 pred=     75  ok   | window acc 0.841
+[15/23] 20260401_105311  true=nominal pred=nominal  ok   | window acc 0.976
+[16/23] 20260401_130356  true=     50 pred=     50  ok   | window acc 1.000
+[17/23] 20260401_132047  true=     15 pred=     20  MISS | window acc 0.146
+[18/23] 20260401_132502  true=     25 pred=     25  ok   | window acc 1.000
+[19/23] 20260401_095805  true=nominal pred=nominal  ok   | window acc 0.995
+[20/23] 20260401_102314  true=     50 pred=     50  ok   | window acc 1.000
+[21/23] 20260401_125749  true=     75 pred=nominal  MISS | window acc 0.242
+[22/23] 20260401_131150  true=     25 pred=     25  ok   | window acc 1.000
+[23/23] 20260401_131712  true=     20 pred=     25  MISS | window acc 0.037
+
+===== accel / clean: 4 folds over recordings =====
+recordings                    : 23
+per-recording window accuracy : 0.740 +/- 0.397
+pooled window accuracy        : 0.693
+pooled window macro-F1        : 0.602
+recording accuracy (soft vote): 17/23 = 0.739
+recording accuracy (majority) : 17/23 = 0.739
+recording macro-F1 (soft vote): 0.625
+
+pooled window confusion matrix (rows = true, cols = pred):
+order: ['nominal', '75', '50', '25', '20', '15']
+[[633 269   0   0   0   0]
+ [384 368  13   0   0   0]
+ [  0   0 656   0   0   0]
+ [  0   0   0 801  19   0]
+ [  0   0   0 152   8 168]
+ [  0   0   0   0 162 166]]
+
+recording-level confusion matrix (majority vote):
+[[5 1 0 0 0 0]
+ [2 2 0 0 0 0]
+ [0 0 4 0 0 0]
+ [0 0 0 5 0 0]
+ [0 0 0 1 0 1]
+ [0 0 0 0 1 1]]
+
+--- grouped as cavitation vs not (no cavitation / cavitation) ---
+window accuracy    : 1.000
+window macro-F1    : 1.000
+recording accuracy : 23/23 = 1.000
+confusion (rows = true, cols = pred): ['no cavitation', 'cavitation']
+[[2323    0]
+ [   0 1476]]
+
+--- grouped as severity level (none / onset / developing) ---
+window accuracy    : 0.955
+window macro-F1    : 0.920
+recording accuracy : 22/23 = 0.957
+confusion (rows = true, cols = pred): ['none', 'onset', 'developing']
+[[2323    0    0]
+ [   0  801   19]
+ [   0  152  504]]
