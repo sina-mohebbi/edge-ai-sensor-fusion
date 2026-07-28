@@ -1,17 +1,18 @@
 # Cavitation detection from sound and vibration
 
-Detecting cavitation in a centrifugal pump by fusing its sound and vibration in one
-small neural network.
+Detecting cavitation in a centrifugal pump from its sound and vibration with a small
+neural network.
 
 A microphone and an accelerometer record the pump while an inlet valve is closed step
-by step. The model reads a 1-second window of both signals and predicts the valve
+by step. The model reads a 1-second window of the signals and predicts the valve
 aperture (`nominal, 75%, 50%, 25%, 20%, 15%`); cavitation begins around 25%.
 
 ## Main result
 
-The model detects **cavitation vs. no cavitation perfectly (100%)** on recordings it has
-never seen, in both quiet and noisy conditions. On the exact 6 apertures it reaches
-0.70 (quiet) and 0.80 (noisy).
+A **single accelerometer** turns out to be the best model here: 0.86 on the exact aperture,
+above the microphone alone (0.77). Combining the two sensors does not improve on it, and no
+time-frequency transform is needed. **Cavitation vs. no cavitation is detected perfectly
+(100%)** on recordings the model has never seen, in both clean and noisy conditions.
 
 The evaluation method matters more than the model: with shuffled windows every model
 scores about 100%, because windows from the same recording land in both training and
@@ -32,14 +33,19 @@ mapping are in `Dataset/README.txt`.
 python src/preprocess.py
 
 # the honest evaluation (hold out one whole recording at a time)
-python src/cross_validate.py --mode earlyfusion --condition clean
-python src/cross_validate.py --mode earlyfusion --condition noisy
+python src/cross_validate.py --mode accel --condition clean
+python src/cross_validate.py --mode accel --condition noisy
+
+# pool clean + noisy together, 4 folds
+python src/cross_validate.py --mode accel --condition all --folds 4
 
 # the leaky reference (shuffle all windows, then split)
-python src/shuffled_window.py --mode earlyfusion --condition clean
+python src/shuffled_window.py --mode accel --condition clean
 ```
 
-Available models: `earlyfusion`, `hybrid`, `spectral`, `fusion`, `gated`, `mic`, `accel`.
+Models: `accel` (vibration only, the best here), `mic` (sound only), `earlyfusion`,
+`hybrid`, `spectral`, `fusion`, `gated`. Predicting the aperture as a number:
+`python src/regression.py --mode earlyfusion --condition all --folds 4`.
 
 ## The files
 
@@ -47,7 +53,8 @@ Available models: `earlyfusion`, `hybrid`, `spectral`, `fusion`, `gated`, `mic`,
 |------|--------------|
 | `src/preprocess.py` | Reads the raw CSV files once and saves each recording compactly, plus an index with the labels. |
 | `src/dataset.py` | Loads recordings and cuts them into 1-second windows of sound and vibration. |
-| `src/model.py` | All the models, including the early-fusion network used for the final result. |
+| `src/model.py` | All the models: the single-sensor networks, the fusion variants, and the early-fusion network. |
+| `src/regression.py` | Predicts the aperture as a number instead of a class. |
 | `src/cross_validate.py` | The honest evaluation: hold out one recording, train on the rest, repeat for all. |
 | `src/shuffled_window.py` | The leaky reference: pool all windows, shuffle, split. Kept for comparison. |
 | `src/train.py` | Trains on a single split. Used early on. |
