@@ -1,4 +1,4 @@
-# Cavitation monitoring of a centrifugal pump from sound and vibration
+# Cavitation detection of a centrifugal pump from sound and vibration
 
 **Sina Mohebbi**
 
