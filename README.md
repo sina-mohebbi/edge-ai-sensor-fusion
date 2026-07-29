@@ -169,6 +169,8 @@ Pooled recordings, 4 folds, identical training settings:
 | Sound only | mic (2 ch) | raw time domain | 0.77 (33/43) | 0.69 | 1.00 |
 | Fusion (intermediate) | mic + accel (1 axis) | raw time domain | 0.74 (32/43) | 0.67 | 1.00 |
 
+![Model comparison](results/model_comparison.png)
+
 Vibration is the more informative sensor: the accelerometer alone (0.86) does markedly better
 than the microphone alone (0.77). Combining the two does not improve on it — early fusion
 (0.84) matches vibration-only within one recording, and intermediate fusion (0.74) is worse
@@ -241,10 +243,13 @@ result unchanged, while adding recordings (pooling) moved it by 10 points.
 
 ## Where the errors are
 
+![Confusion matrix of the best model](results/confusion_matrix.png)
+
 Every mistake is between neighbouring settings: **nominal and 75%** (neither has cavitation,
 they differ only in flow rate) and **20% and 15%** (both developing, each with only 2
-recordings). No recording with cavitation was ever labelled as no cavitation, in any condition
-or any model — the mistakes are always one step off, never a missed detection.
+recordings). Every off-diagonal count sits right next to the diagonal. No recording with
+cavitation was ever labelled as no cavitation, in any condition or any model — the mistakes
+are always one step off, never a missed detection.
 
 ---
 
