@@ -2,6 +2,8 @@
 
 **Sina Mohebbi**
 
+![Overview](results/overview.png)
+
 Detecting cavitation in a centrifugal pump from its sound and vibration with a small neural
 network. A microphone and an accelerometer record the pump while an inlet valve is closed
 step by step, and the task is to recognise the setting from a short slice of the signals:
