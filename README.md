@@ -338,3 +338,15 @@ pip install -r requirements.txt
 
 Training runs on the GPU if one is available. Results are reproducible: the random seed is
 fixed, so repeating a run gives the same numbers.
+
+The dataset is not included (it is shared privately and is not mine to publish), and the
+source paper below is referenced, not redistributed.
+
+---
+
+## Reference
+
+Dataset and the intermediate-fusion baseline are from:
+
+> M. Zauli, M. G. Gaeta, C. Bragalli, L. De Marchi, F. Zonzini. *PumpIT: A Compact,
+> AI-powered Multimodal Node for Cavitation Monitoring of Pumps.* University of Bologna.
